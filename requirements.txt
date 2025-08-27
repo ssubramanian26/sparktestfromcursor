@@ -1,0 +1,34 @@
+# PySpark Orders Processing Application Requirements
+
+# Core PySpark and big data processing
+pyspark==3.5.0
+py4j==0.10.9.7
+
+# Data manipulation and processing
+pandas==2.1.4
+numpy==1.24.4
+pyarrow==14.0.2
+
+# Data generation dependencies
+faker==20.1.0
+
+# Progress bar for data generation
+tqdm==4.66.1
+
+# Optional: For better performance and additional features
+findspark==2.0.1
+
+# Optional: For monitoring and logging
+py4j-logging==0.1.0
+
+# Optional: For Jupyter notebook support (if you want to run in notebooks)
+jupyter==1.0.0
+jupyterlab==4.0.9
+
+# Web application and visualization
+streamlit==1.28.2
+plotly==5.17.0
+
+# Development dependencies (optional)
+pytest==7.4.3
+pytest-spark==0.6.0
