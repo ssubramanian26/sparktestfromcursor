@@ -471,7 +471,7 @@ def create_github_integration_sidebar():
     # GitHub repository URL input
     repo_url = st.sidebar.text_input(
         "GitHub Repository URL",
-        placeholder="https://github.com/username/repo.git",
+        placeholder="https://github.com/yourusername/your-repo.git",
         help="Enter your GitHub repository URL (HTTPS or SSH)"
     )
     
@@ -601,7 +601,7 @@ def main():
         
         📋 **How to use:**
         1. Scroll down in the sidebar to find the **GitHub Integration** panel
-        2. Enter your GitHub repository URL (HTTPS or SSH)
+        2. Enter any GitHub repository URL (HTTPS or SSH)
         3. Click **"🔧 Init Git"** to initialize the repository
         4. Click **"📤 Push to GitHub"** to upload your code
         
