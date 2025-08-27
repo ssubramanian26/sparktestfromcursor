@@ -12,8 +12,6 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import os
 import glob
-import subprocess
-import shutil
 from datetime import datetime, timedelta
 import pyarrow.parquet as pq
 import pyarrow as pa
@@ -387,168 +385,6 @@ def create_visualizations(df):
                 st.plotly_chart(fig_state_rev, width='stretch')
 
 
-def check_git_installed():
-    """Check if Git is installed on the system"""
-    try:
-        result = subprocess.run(['git', '--version'], capture_output=True, text=True, timeout=10)
-        return result.returncode == 0
-    except (subprocess.TimeoutExpired, FileNotFoundError):
-        return False
-
-
-def initialize_git_repo():
-    """Initialize git repository if not already initialized"""
-    try:
-        # Check if already a git repo
-        result = subprocess.run(['git', 'status'], capture_output=True, text=True, timeout=10)
-        if result.returncode == 0:
-            return True, "Git repository already initialized"
-        
-        # Initialize new repo
-        subprocess.run(['git', 'init'], check=True, capture_output=True, text=True, timeout=10)
-        
-        # Add all files
-        subprocess.run(['git', 'add', '.'], check=True, capture_output=True, text=True, timeout=30)
-        
-        # Initial commit
-        subprocess.run([
-            'git', 'commit', '-m', 
-            f"Initial commit: PySpark Orders Processing Application - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-        ], check=True, capture_output=True, text=True, timeout=30)
-        
-        return True, "Git repository initialized successfully"
-        
-    except subprocess.CalledProcessError as e:
-        return False, f"Git initialization failed: {e.stderr}"
-    except subprocess.TimeoutExpired:
-        return False, "Git initialization timed out"
-    except Exception as e:
-        return False, f"Unexpected error: {str(e)}"
-
-
-def push_to_github(repo_url, branch="main"):
-    """Push code to GitHub repository"""
-    try:
-        # Add remote origin (remove if exists)
-        subprocess.run(['git', 'remote', 'remove', 'origin'], 
-                      capture_output=True, text=True, timeout=10)
-        
-        # Add new remote
-        result = subprocess.run([
-            'git', 'remote', 'add', 'origin', repo_url
-        ], capture_output=True, text=True, timeout=10)
-        
-        if result.returncode != 0:
-            return False, f"Failed to add remote: {result.stderr}"
-        
-        # Set upstream and push
-        result = subprocess.run([
-            'git', 'push', '-u', 'origin', branch
-        ], capture_output=True, text=True, timeout=60)
-        
-        if result.returncode == 0:
-            return True, f"Successfully pushed to {repo_url}"
-        else:
-            return False, f"Push failed: {result.stderr}"
-        
-    except subprocess.TimeoutExpired:
-        return False, "Push operation timed out"
-    except Exception as e:
-        return False, f"Unexpected error during push: {str(e)}"
-
-
-def create_github_integration_sidebar():
-    """Create GitHub integration interface in sidebar"""
-    
-    st.sidebar.markdown("---")
-    st.sidebar.header("🚀 GitHub Integration")
-    
-    if not check_git_installed():
-        st.sidebar.error("❌ Git is not installed on your system")
-        st.sidebar.info("Please install Git to use this feature")
-        return
-    
-    # GitHub repository URL input
-    repo_url = st.sidebar.text_input(
-        "GitHub Repository URL",
-        placeholder="https://github.com/yourusername/your-repo.git",
-        help="Enter your GitHub repository URL (HTTPS or SSH)"
-    )
-    
-    # Branch selection
-    branch = st.sidebar.selectbox(
-        "Branch",
-        options=["main", "master", "develop"],
-        index=0,
-        help="Select the branch to push to"
-    )
-    
-    # Authentication info
-    st.sidebar.info("""
-    **Authentication Setup:**
-    
-    **For HTTPS URLs:**
-    - Use Personal Access Token
-    - Configure: `git config --global user.name "Your Name"`
-    - Configure: `git config --global user.email "your@email.com"`
-    
-    **For SSH URLs:**
-    - Ensure SSH keys are set up
-    - Test with: `ssh -T git@github.com`
-    """)
-    
-    col1, col2 = st.sidebar.columns(2)
-    
-    with col1:
-        if st.button("🔧 Init Git", help="Initialize Git repository"):
-            with st.spinner("Initializing Git repository..."):
-                success, message = initialize_git_repo()
-                if success:
-                    st.sidebar.success(message)
-                else:
-                    st.sidebar.error(message)
-    
-    with col2:
-        if st.button("📤 Push to GitHub", help="Push code to GitHub repository"):
-            if not repo_url.strip():
-                st.sidebar.error("Please enter a GitHub repository URL")
-            else:
-                with st.spinner(f"Pushing to {repo_url}..."):
-                    # First initialize/update git
-                    init_success, init_message = initialize_git_repo()
-                    if not init_success:
-                        st.sidebar.error(f"Git initialization failed: {init_message}")
-                        return
-                    
-                    # Then push to GitHub
-                    success, message = push_to_github(repo_url, branch)
-                    if success:
-                        st.sidebar.success("🎉 " + message)
-                        st.sidebar.balloons()
-                    else:
-                        st.sidebar.error("❌ " + message)
-    
-    # Current Git status
-    try:
-        result = subprocess.run(['git', 'status', '--porcelain'], 
-                               capture_output=True, text=True, timeout=10)
-        if result.returncode == 0:
-            if result.stdout.strip():
-                st.sidebar.info(f"📝 Uncommitted changes: {len(result.stdout.strip().splitlines())} files")
-            else:
-                st.sidebar.success("✅ Working directory clean")
-                
-            # Show last commit
-            commit_result = subprocess.run([
-                'git', 'log', '-1', '--pretty=format:%h %s (%cr)'
-            ], capture_output=True, text=True, timeout=10)
-            
-            if commit_result.returncode == 0 and commit_result.stdout.strip():
-                st.sidebar.info(f"📊 Last commit: {commit_result.stdout.strip()}")
-                
-    except (subprocess.TimeoutExpired, subprocess.CalledProcessError, FileNotFoundError):
-        pass  # Git not initialized or available
-
 
 def display_data_table(df):
     """Display the filtered data table"""
@@ -591,26 +427,8 @@ def main():
     st.title("📊 Orders Data Explorer")
     st.markdown("""
     Interactive dashboard to explore and analyze customer orders data from your PySpark application.
-    Use the filters in the sidebar to customize your view and **push your code to GitHub** using the integration panel.
+    Use the filters in the sidebar to customize your view.
     """)
-    
-    # Add GitHub integration info
-    with st.expander("🚀 New Feature: GitHub Integration"):
-        st.markdown("""
-        **Push your entire PySpark application to GitHub directly from this dashboard!**
-        
-        📋 **How to use:**
-        1. Scroll down in the sidebar to find the **GitHub Integration** panel
-        2. Enter any GitHub repository URL (HTTPS or SSH)
-        3. Click **"🔧 Init Git"** to initialize the repository
-        4. Click **"📤 Push to GitHub"** to upload your code
-        
-        🔑 **Authentication:**
-        - **HTTPS URLs**: Use your GitHub Personal Access Token
-        - **SSH URLs**: Ensure your SSH keys are configured
-        
-        The integration will automatically commit all your application files and push them to your specified repository.
-        """)
     
     # Data loading section
     with st.spinner("🔄 Loading data..."):
@@ -634,9 +452,6 @@ def main():
     
     # Create filters
     filters = create_filters(df)
-    
-    # Add GitHub integration to sidebar
-    create_github_integration_sidebar()
     
     # Apply filters
     filtered_df = apply_filters(df, filters)
